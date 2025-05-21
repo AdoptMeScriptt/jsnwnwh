@@ -1,84 +1,66 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PetsFolder = ReplicatedStorage:WaitForChild("Pets")
+-- Adopt Me Style Pet GUI with Equipping Feature
+-- Open Source GUI script for Roblox
+
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
+local petsFolder = ReplicatedStorage:WaitForChild("Pets") -- Folder containing pet models
 
--- GUI Elements
+-- UI Setup
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 300, 0, 200)
-frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-frame.BorderSizePixel = 0
+screenGui.Name = "PetSpawnerGUI"
 
-local title = Instance.new("TextLabel", frame)
-title.Text = "Pet Spawner"
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.SourceSansBold
-title.TextScaled = true
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 300, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+mainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = true
 
-local petName = Instance.new("TextBox", frame)
-petName.PlaceholderText = "Shadow Dragon"
-petName.Text = ""
-petName.Position = UDim2.new(0.1, 0, 0.2, 0)
-petName.Size = UDim2.new(0.8, 0, 0, 30)
-petName.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-petName.TextColor3 = Color3.new(1, 1, 1)
+-- Dropdown/Buttons for Pet Types
+local petTypes = {"MFR", "NFR", "FR"}
+local selectedPetType = "MFR"
 
-local selectedType = "NFR"
+for i, petType in ipairs(petTypes) do
+    local button = Instance.new("TextButton", mainFrame)
+    button.Size = UDim2.new(0, 80, 0, 40)
+    button.Position = UDim2.new(0, 10 + (i-1)*90, 0, 10)
+    button.Text = petType
+    button.Name = petType
 
-local function createTypeButton(name, color, posX)
-	local button = Instance.new("TextButton", frame)
-	button.Text = name
-	button.BackgroundColor3 = color
-	button.Position = UDim2.new(posX, 0, 0.4, 0)
-	button.Size = UDim2.new(0.25, -5, 0, 30)
-	button.MouseButton1Click:Connect(function()
-		selectedType = name
-		selectedLabel.Text = "Selected: " .. name
-	end)
-	return button
+    button.MouseButton1Click:Connect(function()
+        selectedPetType = petType
+    end)
 end
 
-createTypeButton("MFR", Color3.fromRGB(255, 100, 100), 0.05)
-createTypeButton("NFR", Color3.fromRGB(100, 255, 100), 0.375)
-createTypeButton("FR", Color3.fromRGB(100, 100, 255), 0.7)
-
-local spawnButton = Instance.new("TextButton", frame)
+-- Spawn Button
+local spawnButton = Instance.new("TextButton", mainFrame)
+spawnButton.Size = UDim2.new(0, 260, 0, 40)
+spawnButton.Position = UDim2.new(0, 20, 0, 70)
 spawnButton.Text = "Spawn Pet"
-spawnButton.Position = UDim2.new(0.1, 0, 0.65, 0)
-spawnButton.Size = UDim2.new(0.8, 0, 0, 35)
-spawnButton.BackgroundColor3 = Color3.fromRGB(80, 150, 255)
+spawnButton.Name = "SpawnButton"
 
-local selectedLabel = Instance.new("TextLabel", frame)
-selectedLabel.Text = "Selected: NFR"
-selectedLabel.Position = UDim2.new(0.1, 0, 0.85, 0)
-selectedLabel.Size = UDim2.new(0.8, 0, 0, 20)
-selectedLabel.BackgroundTransparency = 1
-selectedLabel.TextColor3 = Color3.fromRGB(255, 255, 100)
+-- Function to spawn and equip pet
+local function spawnPet()
+    local petModel = petsFolder:FindFirstChild(selectedPetType)
+    if petModel then
+        local clone = petModel:Clone()
+        clone.Name = selectedPetType .. "_Pet"
+        clone.Parent = workspace
 
--- Equip Pet Logic
-local function equipPet(petNameText)
-	local petModel = PetsFolder:FindFirstChild(petNameText)
-	if petModel then
-		local petClone = petModel:Clone()
-		petClone.Name = petNameText .. "_" .. selectedType
-		petClone:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame * CFrame.new(2, 0, 2))
-		petClone.Parent = workspace
+        -- Position near player
+        clone:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame * CFrame.new(2, 0, 2))
 
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = player.Character.HumanoidRootPart
-		weld.Part1 = petClone.PrimaryPart
-		weld.Parent = petClone.PrimaryPart
-	else
-		warn("Pet not found: " .. petNameText)
-	end
+        -- Weld pet to follow player
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = clone.PrimaryPart
+        weld.Part1 = player.Character:FindFirstChild("HumanoidRootPart")
+        weld.Parent = clone.PrimaryPart
+    end
 end
 
-spawnButton.MouseButton1Click:Connect(function()
-	if petName.Text ~= "" then
-		equipPet(petName.Text)
-	end
-end)
+spawnButton.MouseButton1Click:Connect(spawnPet)
+
+-- Tip: Add pet models to ReplicatedStorage > Pets folder with names "MFR", "NFR", "FR"
+-- Each model should have a PrimaryPart set to allow proper attachment.
